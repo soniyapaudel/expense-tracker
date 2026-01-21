@@ -1,0 +1,2 @@
+500.0,groceries,buys some veggies and fruits
+1000.0,Entertainment,buy movie tickets and popcorn 
