@@ -28,11 +28,20 @@ public class ExpenseCLI {
             System.out.println("2. View Expenses");
             System.out.println("3. View Total");
             System.out.println("4. Filter by Category");
+            System.out.println("5. Delete an Expense by Number");
+            System.out.println("6. Delete all Expenses of a Category");
             System.out.println("0. Exit");
             System.out.println("Enter choice:");
 
-            int choice = scanner.nextInt();
-            scanner.nextLine();
+            int choice;
+            if (scanner.hasNextInt()) {
+                choice = scanner.nextInt();
+                scanner.nextLine();
+            } else {
+                System.out.println("Please enter a number for switch !");
+                scanner.nextLine();
+                continue;
+            }
 
             switch (choice) {
                 case 1:
@@ -46,6 +55,12 @@ public class ExpenseCLI {
                     break;
                 case 4:
                     filterByCategory();
+                    break;
+                case 5:
+                    deleteExpensesByNumber();
+                    break;
+                case 6:
+                    deleteExpensesByCategory();
                     break;
                 case 0:
                     System.out.println("Exiting...");
@@ -117,6 +132,43 @@ public class ExpenseCLI {
         }
     }
 
+    private void deleteExpensesByNumber() {
+        viewExpenses();
+
+        if (expenses.isEmpty())
+            return;
+
+        System.out.println("Enter the number of the expense to delete:");
+        int number;
+        try {
+            number = Integer.parseInt(scanner.nextLine());
+            if (number < 1 || number > expenses.size()) {
+                System.out.println("Invalid number!");
+                return;
+
+            }
+            Expense removed = expenses.remove(number - 1);
+            saveAllExpensesToFile();
+            System.out.println("Deleted expense: " + removed);
+        } catch (NumberFormatException e) {
+            System.out.println("Please enter a valid number!");
+        }
+    }
+
+    private void deleteExpensesByCategory() {
+        System.out.println("Enter the category to delete all expenses from:");
+        String cat = scanner.nextLine().trim();
+
+        boolean anyRemoved = expenses.removeIf(e -> e.getCategory().trim().equalsIgnoreCase(cat));
+
+        if (anyRemoved) {
+            saveAllExpensesToFile();
+            System.out.println("Deleted all expenses for category: " + cat);
+        } else {
+            System.out.println("No expenses found for category: " + cat);
+        }
+    }
+
     private void saveExpenseToFile(Expense e) {
         try {
             // create folder if missing for storing the data that user input
@@ -156,4 +208,22 @@ public class ExpenseCLI {
             System.out.println("Error loading expenses from file: " + ex.getMessage());
         }
     }
+
+    private void saveAllExpensesToFile() {
+        try {
+            File folder = new File(DATA_FOLDER);
+            if (!folder.exists())
+                folder.mkdir();
+
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(FILE_NAME))) {
+                for (Expense e : expenses) {
+                    writer.write(e.getAmount() + "," + e.getCategory() + "," + e.getDescription());
+                    writer.newLine();
+                }
+            }
+        } catch (IOException ex) {
+            System.out.println("Error saving expenses to file: " + ex.getMessage());
+        }
+    }
+
 }
