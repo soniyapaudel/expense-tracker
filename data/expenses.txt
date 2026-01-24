@@ -1,3 +1,7 @@
-1000.0,Entertainment,buy movie tickets and popcorn 
-500.0,Transport,Bus Ticket
-2500.0,groceries,Buys veggies and meat 
+1500.0,groceries,buy fruits and veggies,2026-01-22
+1000.0,Transport,Three bus tickets ,2025-01-15
+2500.0,groceries,Buys veggies and meat ,2026-01-22
+890.0,groceries,veggies,2026-01-22
+2500.0,groceries,Buy household things,2026-01-21
+1900.0,Entertainment,Buy susbcriptions for Amazon prime,2026-01-22
+1490.0,Books,Buy Books,2026-01-23

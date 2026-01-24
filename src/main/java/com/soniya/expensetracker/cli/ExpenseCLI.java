@@ -1,5 +1,6 @@
 package com.soniya.expensetracker.cli;
 
+import com.soniya.report.ExpensePDFReport;
 import com.soniya.expensetracker.model.Expense;
 import java.util.Scanner;
 import java.util.ArrayList;
@@ -297,14 +298,11 @@ public class ExpenseCLI {
     private void generateExpenseReport() {
         if (expenses.isEmpty()) {
             System.out.println("No expenses to report.");
+            return;
         }
-        System.out.println("\n Expense Report");
+        String pdfPath = "data/ExpenseReport.pdf";
+        ExpensePDFReport.generate(expenses, pdfPath);
 
-        int count = 1;
-        for (Expense e : expenses) {
-            System.out.printf("%d.) Amount: %2f | Category:%s | Description: %s | Date: %s%n", count++, e.getAmount(),
-                    e.getCategory(), e.getDescription(), e.getDate());
-        }
     }
     // =========Save Expense================
 
