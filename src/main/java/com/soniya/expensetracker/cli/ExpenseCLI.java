@@ -5,22 +5,23 @@ import com.soniya.expensetracker.model.Expense;
 import java.util.Scanner;
 import java.util.ArrayList;
 import java.util.List;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.BufferedWriter;
-import java.io.FileReader;
-import java.io.BufferedReader;
-import java.io.IOException;
+// import java.io.File;
+// import java.io.FileWriter;
+// import java.io.BufferedWriter;
+// import java.io.FileReader;
+// import java.io.BufferedReader;
+// import java.io.IOException;
 import java.time.LocalDate;
+import com.soniya.dao.ExpenseDAO;
 
 public class ExpenseCLI {
     private final Scanner scanner = new Scanner(System.in);
     private List<Expense> expenses = new ArrayList<>();
-    private final String DATA_FOLDER = "data";
-    private final String FILE_NAME = DATA_FOLDER + "/expenses.txt";
+    // private final String DATA_FOLDER = "data";
+    // private final String FILE_NAME = DATA_FOLDER + "/expenses.txt";
 
     public ExpenseCLI() {
-        loadExpenseFromFile();
+        expenses = expenseDAO.getAllExpenses();
     }
 
     private LocalDate readDate() {
@@ -116,9 +117,11 @@ public class ExpenseCLI {
 
         Expense expense = new Expense(amount, category, description, date);
         expenses.add(expense);
-        saveExpenseToFile(expense);
+        expenseDAO.addExpense(expense);
 
         System.out.println("Expense added succesfully!");
+        expenses = expenseDAO.getAllExpenses();
+
     }
 
     // ==========View expense==================
@@ -184,11 +187,14 @@ public class ExpenseCLI {
 
             }
             Expense removed = expenses.remove(number - 1);
-            saveAllExpensesToFile();
+            expenseDAO.deleteExpenseById(removed.getId());
+
             System.out.println("Deleted expense: " + removed);
         } catch (NumberFormatException e) {
             System.out.println("Please enter a valid number!");
         }
+        expenses = expenseDAO.getAllExpenses();
+
     }
 
     /// ==========Delete Expense By category ==============
@@ -199,11 +205,13 @@ public class ExpenseCLI {
         boolean anyRemoved = expenses.removeIf(e -> e.getCategory().trim().equalsIgnoreCase(cat));
 
         if (anyRemoved) {
-            saveAllExpensesToFile();
+            expenseDAO.deleteExpensesByCategory(cat);
             System.out.println("Deleted all expenses for category: " + cat);
         } else {
             System.out.println("No expenses found for category: " + cat);
         }
+        expenses = expenseDAO.getAllExpenses();
+
     }
 
     // =====Filter By date =================
@@ -235,15 +243,15 @@ public class ExpenseCLI {
             return;
 
         System.out.println("Enter expense number to edit:");
-        int index;
+        int number;
 
         try {
-            index = Integer.parseInt(scanner.nextLine()) - 1;
+            number = Integer.parseInt(scanner.nextLine());
         } catch (NumberFormatException e) {
             System.out.println("Invalid number");
             return;
         }
-
+        int index = number - 1;
         if (index < 0 || index >= expenses.size()) {
             System.out.println("Invalid expenses number");
             return;
@@ -253,44 +261,36 @@ public class ExpenseCLI {
 
         System.out.println("Enter new amount (press Enter to keep" + old.getAmount() + "):");
         String amountInput = scanner.nextLine();
-        double amount = old.getAmount();
+
         if (!amountInput.isBlank()) {
-            amount = Double.parseDouble(amountInput);
+            old.setAmount(Double.parseDouble(amountInput));
         }
 
         System.out.println("Enter new category(press Enter to keep '" + old.getCategory() + "'):");
         String categoryInput = scanner.nextLine();
-        String category = old.getCategory();
+
         if (!categoryInput.isBlank()) {
-            category = categoryInput;
+            old.setCategory(categoryInput);
         }
 
         System.out.println("Enter new description(press Enter to keep current):");
         String descriptionInput = scanner.nextLine();
-        String description = old.getDescription();
+
         if (!descriptionInput.isBlank()) {
-            description = descriptionInput;
+            old.setDescription(descriptionInput);
         }
 
         System.out.println("Enter new date (yyyy-mm-dd) or press Enter to keep" + old.getDate() + " :");
         String dateInput = scanner.nextLine();
-        LocalDate date = old.getDate();
         if (!dateInput.isBlank()) {
-            while (true) {
-                try {
-                    date = LocalDate.parse(dateInput);
-                    break;
-                } catch (Exception e) {
-                    System.out.println("Invalid date format. Use yyyy-mm-dd:");
-                    dateInput = scanner.nextLine();
-                }
-            }
+            old.setDate(LocalDate.parse(dateInput));
         }
 
-        expenses.set(index, new Expense(amount, category, description, date));
-        saveAllExpensesToFile();
+        expenseDAO.updateExpense(old);
 
         System.out.println("Expense updated successfully");
+        expenses = expenseDAO.getAllExpenses();
+
     }
 
     // ==== Generate Expense Report======
@@ -304,74 +304,82 @@ public class ExpenseCLI {
         ExpensePDFReport.generate(expenses, pdfPath);
 
     }
-    // =========Save Expense================
 
-    private void saveExpenseToFile(Expense e) {
-        try {
-            // create folder if missing for storing the data that user input
+    // Dao field for databse connection
 
-            File folder = new File(DATA_FOLDER);
-            if (!folder.exists())
-                folder.mkdir();
+    private final ExpenseDAO expenseDAO = new ExpenseDAO();
 
-            try (BufferedWriter writer = new BufferedWriter(new FileWriter(FILE_NAME, true))) {
-                writer.write(e.getAmount() + "," + e.getCategory() + "," + e.getDescription() + "," + e.getDate());
-                writer.newLine();
-            }
+    // // =========Save Expense================
 
-        } catch (IOException ex) {
-            System.out.println("Error saving expense to file:" + ex.getMessage());
-        }
-    }
+    // private void saveExpenseToFile(Expense e) {
+    // try {
+    // // create folder if missing for storing the data that user input
 
-    // ==========Load Expense==============
+    // File folder = new File(DATA_FOLDER);
+    // if (!folder.exists())
+    // folder.mkdir();
 
-    private void loadExpenseFromFile() {
-        File file = new File(FILE_NAME);
-        if (!file.exists())
-            return;
+    // try (BufferedWriter writer = new BufferedWriter(new FileWriter(FILE_NAME,
+    // true))) {
+    // writer.write(e.getAmount() + "," + e.getCategory() + "," + e.getDescription()
+    // + "," + e.getDate());
+    // writer.newLine();
+    // }
 
-        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                String[] parts = line.split(",", 4);
+    // } catch (IOException ex) {
+    // System.out.println("Error saving expense to file:" + ex.getMessage());
+    // }
+    // }
 
-                if (parts.length >= 3) {
-                    double amount = Double.parseDouble(parts[0]);
-                    String category = parts[1];
-                    String description = parts[2];
+    // // ==========Load Expense==============
 
-                    LocalDate date;
-                    if (parts.length >= 4) {
-                        date = LocalDate.parse(parts[3]);
-                    } else {
-                        date = LocalDate.now();
-                    }
-                    expenses.add(new Expense(amount, category, description, date));
-                }
-            }
-        } catch (IOException ex) {
-            System.out.println("Error loading expenses from file: " + ex.getMessage());
-        }
-    }
+    // private void loadExpenseFromFile() {
+    // File file = new File(FILE_NAME);
+    // if (!file.exists())
+    // return;
+
+    // try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+    // String line;
+    // while ((line = reader.readLine()) != null) {
+    // String[] parts = line.split(",", 4);
+
+    // if (parts.length >= 3) {
+    // double amount = Double.parseDouble(parts[0]);
+    // String category = parts[1];
+    // String description = parts[2];
+
+    // LocalDate date;
+    // if (parts.length >= 4) {
+    // date = LocalDate.parse(parts[3]);
+    // } else {
+    // date = LocalDate.now();
+    // }
+    // expenses.add(new Expense(amount, category, description, date));
+    // }
+    // }
+    // } catch (IOException ex) {
+    // System.out.println("Error loading expenses from file: " + ex.getMessage());
+    // }
+    // }
 
     // ======= save All Expense===========
 
-    private void saveAllExpensesToFile() {
-        try {
-            File folder = new File(DATA_FOLDER);
-            if (!folder.exists())
-                folder.mkdir();
+    // private void saveAllExpensesToFile() {
+    // try {
+    // File folder = new File(DATA_FOLDER);
+    // if (!folder.exists())
+    // folder.mkdir();
 
-            try (BufferedWriter writer = new BufferedWriter(new FileWriter(FILE_NAME))) {
-                for (Expense e : expenses) {
-                    writer.write(e.getAmount() + "," + e.getCategory() + "," + e.getDescription() + "," + e.getDate());
-                    writer.newLine();
-                }
-            }
-        } catch (IOException ex) {
-            System.out.println("Error saving expenses to file: " + ex.getMessage());
-        }
-    }
+    // try (BufferedWriter writer = new BufferedWriter(new FileWriter(FILE_NAME))) {
+    // for (Expense e : expenses) {
+    // writer.write(e.getAmount() + "," + e.getCategory() + "," + e.getDescription()
+    // + "," + e.getDate());
+    // writer.newLine();
+    // }
+    // }
+    // } catch (IOException ex) {
+    // System.out.println("Error saving expenses to file: " + ex.getMessage());
+    // }
+    // }
 
 }
